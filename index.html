@@ -22,13 +22,8 @@
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
 
-    h2 {
-      margin-bottom: 15px;
-    }
-
-    h3 {
-      margin: 8px 0;
-    }
+    h2 { margin-bottom: 15px; }
+    h3 { margin: 8px 0; }
 
     button {
       margin: 5px;
@@ -76,7 +71,10 @@
   <button onclick="addWicket()" class="danger">Wicket</button>
   <button onclick="addBall()">Ball</button>
   <button onclick="addWide()">Wide</button>
+
   <br><br>
+
+  <button onclick="undoLast()">⬅ Undo</button>
   <button onclick="resetGame()" class="danger">Reset</button>
 </div>
 
@@ -84,6 +82,18 @@
   let runs = 0;
   let wickets = 0;
   let balls = 0;
+
+  let history = [];
+
+  // 🔊 Sound setup
+  let runSound = new Audio("run.mp3");
+  let fourSound = new Audio("four.mp3");
+  let sixSound = new Audio("six.mp3");
+  let wicketSound = new Audio("wicket.mp3");
+
+  function saveState() {
+    history.push({ runs, wickets, balls });
+  }
 
   function updateDisplay() {
     let overs = Math.floor(balls / 6);
@@ -94,16 +104,40 @@
     document.getElementById("overs").innerText = "Overs: " + overs + "." + ballInOver;
   }
 
+  function isGameOver() {
+    return wickets >= 10;
+  }
+
   function addRun(r) {
-    runs += r;
-    balls++;
-    updateDisplay();
+    if (!isGameOver()) {
+      saveState();
+      runs += r;
+      balls++;
+
+      // 🔊 Play sound
+      if (r === 4) {
+        fourSound.play();
+      } else if (r === 6) {
+        sixSound.play();
+      } else {
+        runSound.play();
+      }
+
+      updateDisplay();
+    } else {
+      alert("All Out!");
+    }
   }
 
   function addWicket() {
     if (wickets < 10) {
+      saveState();
       wickets++;
       balls++;
+
+      // 🔊 Wicket sound
+      wicketSound.play();
+
       updateDisplay();
     } else {
       alert("All Out!");
@@ -111,21 +145,46 @@
   }
 
   function addBall() {
-    balls++;
-    updateDisplay();
+    if (!isGameOver()) {
+      saveState();
+      balls++;
+      runSound.play();
+      updateDisplay();
+    }
   }
 
   function addWide(){
-    runs++;
-    updateDisplay();
+    if (!isGameOver()) {
+      saveState();
+      runs++;
+      runSound.play();
+      updateDisplay();
+    }
+  }
+
+  function undoLast() {
+    if (history.length > 0) {
+      let last = history.pop();
+      runs = last.runs;
+      wickets = last.wickets;
+      balls = last.balls;
+      updateDisplay();
+    } else {
+      alert("Nothing to undo!");
+    }
   }
 
   function resetGame() {
-    runs = 0;
-    wickets = 0;
-    balls = 0;
-    updateDisplay();
+    if (confirm("Are you sure you want to reset?")) {
+      runs = 0;
+      wickets = 0;
+      balls = 0;
+      history = [];
+      updateDisplay();
+    }
   }
+
+  updateDisplay();
 </script>
 
 </body>
