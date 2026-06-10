@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live Cricket Score</title>
-  <meta name="description" content="Live cricket scoreboard website">
+  <title>Cricket Scoreboard</title>
   <style>
     body {
       font-family: Arial;
@@ -18,7 +17,7 @@
     .box {
       background: rgba(255, 255, 255, 0.95);
       padding: 25px;
-      width: 340px;
+      width: 380px;
       border-radius: 15px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
@@ -50,12 +49,23 @@
     .danger:hover {
       background-color: #c0392b;
     }
+
+    #historyBox {
+      height: 150px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+      border-radius: 8px;
+      background: #f9f9f9;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
 
 <div class="box">
-  <h2>Live Cricket Score</h2>
+  <h2>🏏 Cricket Scoreboard</h2>
 
   <h3 id="score">Runs: 0</h3>
   <h3 id="wickets">Wickets: 0</h3>
@@ -77,6 +87,9 @@
 
   <button onclick="undoLast()">⬅ Undo</button>
   <button onclick="resetGame()" class="danger">Reset</button>
+
+  <h3>📋 Ball by Ball Record</h3>
+  <div id="historyBox"></div>
 </div>
 
 <script>
@@ -85,15 +98,21 @@
   let balls = 0;
 
   let history = [];
+  let ballHistory = [];
 
-  // 🔊 Sound setup
+  // Sound setup
   let runSound = new Audio("run.mp3");
   let fourSound = new Audio("four.mp3");
   let sixSound = new Audio("six.mp3");
   let wicketSound = new Audio("wicket.mp3");
 
   function saveState() {
-    history.push({ runs, wickets, balls });
+    history.push({
+      runs,
+      wickets,
+      balls,
+      ballHistory: [...ballHistory]
+    });
   }
 
   function updateDisplay() {
@@ -102,7 +121,16 @@
 
     document.getElementById("score").innerText = "Runs: " + runs;
     document.getElementById("wickets").innerText = "Wickets: " + wickets;
-    document.getElementById("overs").innerText = "Overs: " + overs + "." + ballInOver;
+    document.getElementById("overs").innerText =
+      "Overs: " + overs + "." + ballInOver;
+  }
+
+  function updateHistory() {
+    document.getElementById("historyBox").innerHTML =
+      ballHistory.map(item => `<div>${item}</div>`).join("");
+
+    let box = document.getElementById("historyBox");
+    box.scrollTop = box.scrollHeight;
   }
 
   function isGameOver() {
@@ -112,10 +140,15 @@
   function addRun(r) {
     if (!isGameOver()) {
       saveState();
-      runs += r;
-      balls++;
 
-      // 🔊 Play sound
+      balls++;
+      runs += r;
+
+      let over = Math.floor((balls - 1) / 6);
+      let ballNo = ((balls - 1) % 6) + 1;
+
+      ballHistory.push(`${over}.${ballNo} → ${r} Run`);
+
       if (r === 4) {
         fourSound.play();
       } else if (r === 6) {
@@ -125,21 +158,28 @@
       }
 
       updateDisplay();
+      updateHistory();
     } else {
       alert("All Out!");
     }
   }
 
   function addWicket() {
-    if (wickets < 10) {
+    if (!isGameOver()) {
       saveState();
+
       wickets++;
       balls++;
 
-      // 🔊 Wicket sound
+      let over = Math.floor((balls - 1) / 6);
+      let ballNo = ((balls - 1) % 6) + 1;
+
+      ballHistory.push(`${over}.${ballNo} → WICKET`);
+
       wicketSound.play();
 
       updateDisplay();
+      updateHistory();
     } else {
       alert("All Out!");
     }
@@ -148,28 +188,50 @@
   function addBall() {
     if (!isGameOver()) {
       saveState();
+
       balls++;
+
+      let over = Math.floor((balls - 1) / 6);
+      let ballNo = ((balls - 1) % 6) + 1;
+
+      ballHistory.push(`${over}.${ballNo} → Dot Ball`);
+
       runSound.play();
+
       updateDisplay();
+      updateHistory();
     }
   }
 
-  function addWide(){
+  function addWide() {
     if (!isGameOver()) {
       saveState();
+
       runs++;
+
+      let over = Math.floor(balls / 6);
+      let ballNo = (balls % 6) + 1;
+
+      ballHistory.push(`${over}.${ballNo} → Wide +1`);
+
       runSound.play();
+
       updateDisplay();
+      updateHistory();
     }
   }
 
   function undoLast() {
     if (history.length > 0) {
       let last = history.pop();
+
       runs = last.runs;
       wickets = last.wickets;
       balls = last.balls;
+      ballHistory = [...last.ballHistory];
+
       updateDisplay();
+      updateHistory();
     } else {
       alert("Nothing to undo!");
     }
@@ -181,11 +243,15 @@
       wickets = 0;
       balls = 0;
       history = [];
+      ballHistory = [];
+
       updateDisplay();
+      updateHistory();
     }
   }
 
   updateDisplay();
+  updateHistory();
 </script>
 
 </body>
